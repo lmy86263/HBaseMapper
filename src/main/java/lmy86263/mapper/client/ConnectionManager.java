@@ -28,6 +28,8 @@ public class ConnectionManager extends PriorityQueue<ConnectionWrapper> {
     private int currentSize = 0;
 
     public ConnectionManager(Properties props) {
+        super(Comparator.comparingInt(ConnectionWrapper::getLoad));
+
         this.initSize = Integer.parseInt(Optional.ofNullable(props.getProperty("")).orElseGet(() -> initSize + ""));
         this.incrementSize = Integer.parseInt(Optional.ofNullable(props.getProperty("")).orElseGet(() -> incrementSize + ""));
         this.maxSize = Integer.parseInt(Optional.ofNullable(props.getProperty("")).orElseGet(() -> maxSize + ""));
@@ -72,18 +74,13 @@ public class ConnectionManager extends PriorityQueue<ConnectionWrapper> {
         }
     }
 
-    public ConnectionWrapper getConnection() {
+    public ConnectionWrapper getConnectionWrapper() {
         if (this.isEmpty()) {
             addConnection();
         }
         ConnectionWrapper wrapper = this.poll();
         wrapper.setLoad(wrapper.getLoad() + 1);
         return wrapper;
-    }
-
-    @Override
-    public Comparator<? super ConnectionWrapper> comparator() {
-        return Comparator.comparingInt(ConnectionWrapper::getLoad);
     }
 
     public void close() {
