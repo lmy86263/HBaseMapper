@@ -1,4 +1,4 @@
-package schema.common;
+package lmy86263.mapper.schema.common;
 
 /**
  * @author lmy86263
@@ -17,7 +17,7 @@ public abstract class AbstractSchemaManager implements SchemaManager {
     }
 
     @Override
-    public void dropSchema(){
+    public void createOrDropSchema() {
 
     }
 
