@@ -3,15 +3,15 @@ package lmy86263.mapper.schema;
 import lmy86263.mapper.client.ConnectionWrapper;
 import lmy86263.mapper.client.mapper.HBaseMapperMetaData;
 import lmy86263.mapper.client.model.TableDefinition;
+import lmy86263.mapper.configure.SystemParams;
 import lmy86263.mapper.exception.HBaseMapperException;
 import lmy86263.mapper.schema.common.AbstractSchemaManager;
 import lmy86263.mapper.schema.common.MapperSchema;
 import lmy86263.mapper.schema.common.Schemas;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder;
-import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
-import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 
@@ -37,8 +37,7 @@ public class HBaseSchemaManager extends AbstractSchemaManager {
     @Override
     @MapperSchema(name = Schemas.CREATE)
     public void createSchema() {
-        this.deleteAllTables();
-        metaData.getTables().forEach(this::createSchemaTable);
+        createInterval();
     }
 
 
@@ -52,9 +51,13 @@ public class HBaseSchemaManager extends AbstractSchemaManager {
     @Override
     @MapperSchema(name = Schemas.CREATE_DROP)
     public void createOrDropSchema() {
-        this.deleteAllTables();
-        metaData.getTables().forEach(this::createSchemaTable);
+        createInterval();
         Runtime.getRuntime().addShutdownHook(new Thread(this::deleteAllTables));
+    }
+
+    void createInterval() {
+        this.deleteAllTables();
+        metaData.getTables().forEach(this::createSchemaTableV1);
     }
 
     public void deleteAllTables() {
@@ -70,13 +73,23 @@ public class HBaseSchemaManager extends AbstractSchemaManager {
         }
     }
 
-    public void createSchemaTable(TableDefinition table) {
-        TableDescriptorBuilder tableBuilder = TableDescriptorBuilder
-                .newBuilder(TableName.valueOf(table.getNameSpace(), table.getTableName()));
-        table.getFamilies().keySet().forEach(family -> tableBuilder
-                .setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes(family)).build()));
+//    public void createSchemaTable(TableDefinition table) {
+//        TableDescriptorBuilder tableBuilder = TableDescriptorBuilder
+//                .newBuilder(TableName.valueOf(table.getNameSpace(), table.getTableName()));
+//        table.getFamilies().keySet().forEach(family -> tableBuilder
+//                .setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes(family)).build()));
+//        try {
+//            admin.createTable(tableBuilder.build());
+//        } catch (IOException e) {
+//            throw new HBaseMapperException(String.format("create table %s:%s failed", table.getNameSpace(), table.getTableName()), e);
+//        }
+//    }
+
+    public void createSchemaTableV1(TableDefinition table) {
+        HTableDescriptor tableDescriptor = new HTableDescriptor(TableName.valueOf(table.getNameSpace(), table.getTableName()));
+        table.getFamilies().keySet().forEach(family -> tableDescriptor.addFamily(new HColumnDescriptor(family)));
         try {
-            admin.createTable(tableBuilder.build());
+            admin.createTable(tableDescriptor);
         } catch (IOException e) {
             throw new HBaseMapperException(String.format("create table %s:%s failed", table.getNameSpace(), table.getTableName()), e);
         }
@@ -85,10 +98,14 @@ public class HBaseSchemaManager extends AbstractSchemaManager {
     public void updateTable(TableDefinition table) {
         try {
             if (!admin.tableExists(TableName.valueOf(table.getNameSpace(), table.getTableName()))) {
-                createSchemaTable(table);
+                if (SystemParams.V2.equals(System.getProperty(SystemParams.HBASE_SERVER_VERSION))) {
+//                    createSchemaTable(table);
+                } else {
+                    createSchemaTableV1(table);
+                }
             }
-        } catch (IOException e) {
-            throw new HBaseMapperException(String.format("decide table %s:%s exists failed", table.getNameSpace(), table.getTableName()), e);
+        } catch (Exception e) {
+            throw new HBaseMapperException(String.format("update table schema %s:%s failed", table.getNameSpace(), table.getTableName()), e);
         }
     }
 

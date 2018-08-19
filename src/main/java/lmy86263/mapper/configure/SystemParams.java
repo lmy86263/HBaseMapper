@@ -12,6 +12,11 @@ public final class SystemParams {
 
     public static final String HBASE_MAPPER_SCHEMA = "hbase.mapper.schema";
 
+    public static final String HBASE_SERVER_VERSION = "hbase.server.version";
+
+    public static final String V1 = "1.x";
+    public static final String V2 = "2.x";
+
     public enum OS {
         /**
          * windows OS
