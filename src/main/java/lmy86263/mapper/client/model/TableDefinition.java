@@ -2,7 +2,6 @@ package lmy86263.mapper.client.model;
 
 import lombok.Getter;
 
-import javax.persistence.PersistenceUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * @date 2018/08/16
  */
 @Getter
-@PersistenceUnit
 public class TableDefinition {
 
     private final String nameSpace;
